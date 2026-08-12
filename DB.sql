@@ -143,26 +143,7 @@ INSERT INTO `notpassed_candidates` (`unique_number`) VALUES
     ('99002');
 
 -- ============================================================
--- 7. url_shorts 테이블
---    참조 파일: api/shorten.php, api/redirect.php
---    용도: 단축 URL 생성 및 리다이렉트
---          원본 URL을 해시 코드로 매핑
--- ============================================================
-CREATE TABLE IF NOT EXISTS `url_shorts` (
-    `id`         INT         NOT NULL AUTO_INCREMENT,
-    `short_code` VARCHAR(20) NOT NULL UNIQUE COMMENT '단축 코드 (예: abc123)',
-    `original_url` TEXT      NOT NULL         COMMENT '원본 URL',
-    `created_at` DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성 일시',
-    `expires_at` DATETIME    DEFAULT NULL     COMMENT '만료 일시 (선택)',
-    `click_count` INT        DEFAULT 0        COMMENT '클릭 횟수 (통계용)',
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `idx_short_code` (`short_code`),
-    INDEX `idx_created_at` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='단축 URL 매핑 테이블';
-
--- ============================================================
--- 8. notices 테이블
+-- 7. notices 테이블
 --    참조 파일: admin/notices.php, api/notices.php
 --    용도: 조회 화면 상단에 표시하는 공지 배너
 -- ============================================================
