@@ -11,6 +11,7 @@ FiveM 서버의 지원자 합격/불합격을 관리하고, Discord로 인사팀
 - 🔍 **합격 여부 조회** — 지원자가 고유번호로 본인 결과 확인 (`passed` / `failed` / `pending`)
 - 🤖 **Discord 봇 알림 (지원자 접수)** — 새 지원자가 접수되면 봇이 채널에 메시지를 보내고, 합격/불합격/보류 버튼이 함께 붙습니다. 화이트리스트에 등록된 관리자만 버튼을 눌러 그 자리에서 결과를 반영할 수 있습니다
 - 📢 **Discord 웹훅 알림 (로그인 등)** — 인사팀 로그인, 관리자 추가, IP 불일치 등은 기존 방식(웹훅)으로 알림
+- ✉️ **이메일 알림** — 지원서 접수 시 접수 완료 메일, 합격/불합격 처리 시 결과 메일을 지원자에게 자동 발송 (이메일을 제출한 경우만, SMTP 설정 필요)
 - 📡 **실시간 현황 조회** — 합격/불합격/지원불가 번호 목록을 SSE(Server-Sent Events)로 폴링 없이 실시간 갱신
 - 📣 **공지 배너** — 관리자가 등록한 공지를 조회 화면에 배너로 표시 (`admin/notices.php`)
 - 🚫 **IP 차단** — SQL 인젝션 시도 등 비정상 접근 IP를 자동 차단
@@ -24,14 +25,15 @@ FiveM 서버의 지원자 합격/불합격을 관리하고, Discord로 인사팀
 ## 🗺️ 서비스 흐름
 
 ```
-[지원자] → Google Form 제출
+[지원자] → Google Form 제출 (이메일 항목 선택)
     └→ Apps Script → sync/sync.php
         └→ exam_results 테이블에 pending 상태로 등록
         └→ Discord 봇이 합격/불합격/보류 버튼과 함께 알림 전송
+        └→ 이메일을 제출했다면 접수 완료 메일 발송
 
 [관리자] → admin/login.php 로그인
-    └→ admin/index.php: 고유번호 + 결과 선택 → exam_results UPsert
-    └→ 또는 Discord 메시지의 버튼을 직접 클릭 → api/discord_interactions.php가 처리
+    └→ admin/index.php: 고유번호 + 결과 선택 → exam_results UPsert → 저장된 이메일 있으면 결과 메일 발송
+    └→ 또는 Discord 메시지의 버튼을 직접 클릭 → api/discord_interactions.php가 동일하게 처리 (결과 메일 포함)
 
 [지원자] → api/check.php에서 고유번호 조회
     └→ 합격 / 불합격 / 검토중 / 오류 결과 화면 표시
@@ -76,14 +78,14 @@ recruit-dashboard/
 │   ├── csrf.php                   # CSRF 토큰 발급/검증
 │   ├── discord_bot.php            # Discord REST API 호출 + 메시지 생성
 │   ├── discord_notification.php   # (레거시) 웹훅 알림 함수
-│   └── email_sender.php           # 이메일 발송 (PHPMailer, 아직 어떤 페이지에서도 호출 안 함)
+│   └── email_sender.php           # 이메일 발송 (PHPMailer, sync.php/admin/index.php/discord_interactions.php에서 호출)
 ├── sync/
-│   └── sync.php                   # 구글 폼 → DB 자동 등록 + Discord 봇 알림
+│   └── sync.php                   # 구글 폼 → DB 자동 등록 + Discord 봇 알림 + 접수 완료 메일
 ├── DB.sql                          # 전체 스키마 + 샘플 데이터
 └── index.php / login.php           # 사용자 진입 페이지
 ```
 
-> `admin/index_v2.php`, `api/check_v2.php`, `sync/sync_v2.php`는 이메일 발송 기능을 붙여보던 초안입니다. 아직 실제 서비스에 연결되어 있지 않습니다 (라이브 페이지는 `_v2`가 없는 쪽입니다).
+> `admin/index_v2.php`, `api/check_v2.php`, `sync/sync_v2.php`는 이메일 발송 기능을 붙여보던 초안이었습니다. 그 기능은 이제 라이브 파일(`_v2` 없는 쪽)에 통합됐으므로, 이 세 파일은 더 이상 필요 없는 중복입니다 — 지워도 됩니다.
 
 ---
 
@@ -139,7 +141,7 @@ server {
 | `admins` | 관리자 계정 및 접속 허용 IP (비밀번호 해시 저장) |
 | `blocked_ips` | 차단된 IP 목록 |
 | `candidates` | 구글 폼 원본 수신 데이터 |
-| `exam_results` | 합격(`passed`)/불합격(`failed`)/대기(`pending`) 결과 |
+| `exam_results` | 합격(`passed`)/불합격(`failed`)/대기(`pending`) 결과, 이메일/발송시각 포함 |
 | `notpassed_candidates` | 지원불가자 목록 (`rejected_applicants` 뷰로도 접근) |
 | `notices` | 공지 배너 |
 
@@ -157,7 +159,7 @@ $password = "YOUR_DB_PASSWORD";
 $dbname   = "YOUR_DB_NAME";
 ```
 
-**`config/email_config.local.php`** (직접 생성, 이메일 발송 쓸 경우만)
+**`config/email_config.local.php`** (직접 생성) — 이걸 만들고 `$email_enabled = true;`로 켜야 접수 완료/결과 메일이 실제로 발송됩니다. 없으면 이메일 발송 코드는 조용히 스킵되고 나머지 기능(Discord 알림 등)은 그대로 동작합니다.
 ```php
 <?php
 $email_smtp_password = "YOUR_SMTP_PASSWORD_OR_API_KEY";
@@ -205,7 +207,8 @@ function onFormSubmit(e) {
     timestamp:     new Date().toISOString(),
     nickname:      itemResponses[0].getResponse(),
     unique_number: itemResponses[1].getResponse(),
-    age:           itemResponses[2].getResponse()
+    age:           itemResponses[2].getResponse(),
+    email:         itemResponses[3] ? itemResponses[3].getResponse() : null  // 선택 — 있으면 접수/결과 메일 발송
   };
 
   UrlFetchApp.fetch("https://YOUR_DOMAIN/sync/sync.php", {
@@ -259,7 +262,7 @@ chmod g+w sync config sync/log.txt
 - 비밀번호는 항상 `password_hash()`로 해시해서 저장하세요. 평문 INSERT 금지.
 - 상태를 바꾸는 폼을 새로 추가할 때는 `includes/csrf.php`의 `csrf_field()` / `csrf_require()`를 반드시 같이 쓰세요.
 - `.git` 웹 접근은 nginx에서 차단되어 있습니다. 다른 웹서버로 옮길 경우 동일하게 차단하세요.
-- `admin/index_v2.php`, `api/check_v2.php`, `sync/sync_v2.php`, `includes/email_sender.php`는 이메일 발송을 붙이려던 초안이며 아직 라이브 플로우에 연결되어 있지 않습니다. 완성해서 붙이려면 라이브 파일(`_v2` 없는 쪽)에 병합하세요.
+- 이메일 발송은 `$email_enabled`가 꺼져 있으면(기본값) 모든 코드 경로에서 조용히 스킵됩니다. 실제로 발송되게 하려면 `config/email_config.local.php`를 만들어야 합니다.
 
 ---
 

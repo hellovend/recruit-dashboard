@@ -90,6 +90,8 @@ CREATE TABLE IF NOT EXISTS `exam_results` (
     `pass_status`   ENUM('pending','passed','failed')
                                 NOT NULL DEFAULT 'pending' COMMENT '대기(pending) / 합격(passed) / 불합격(failed) — sync.php가 접수 시 pending으로 INSERT함',
     `nickname`      VARCHAR(100) DEFAULT NULL      COMMENT '닉네임 (check.php 표시용)',
+    `email`         VARCHAR(255) DEFAULT NULL      COMMENT '지원자 이메일 (알림 발송용, 선택)',
+    `email_sent_at` DATETIME    DEFAULT NULL       COMMENT '가장 최근 이메일 발송 시각',
     `registered_at` DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '등록 일시',
     PRIMARY KEY (`id`),
     INDEX `idx_unique_number` (`unique_number`),

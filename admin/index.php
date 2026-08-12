@@ -18,6 +18,7 @@ if (isset($_POST['logout'])) {
 }
 
 require_once __DIR__ . '/../config/dbconfig.php';
+require_once __DIR__ . '/../includes/email_sender.php';
 
 $conn = new mysqli($servername, $username, $password, $dbname);
 
@@ -101,6 +102,26 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
     // =========================
+    // 이메일 발송 (합격/불합격만, 접수 시 저장된 이메일이 있을 때)
+    // =========================
+    if ($email_enabled && in_array($passStatus, ['passed', 'failed'])) {
+        $emailStmt = $conn->prepare("SELECT email, nickname FROM exam_results WHERE unique_number = ?");
+        $emailStmt->bind_param("s", $uniqueNumber);
+        $emailStmt->execute();
+        $emailRow = $emailStmt->get_result()->fetch_assoc();
+
+        if ($emailRow && $emailRow['email']) {
+            $toName = $emailRow['nickname'] ?: $uniqueNumber;
+            if (sendResultEmail($emailRow['email'], $toName, $uniqueNumber, $passStatus)) {
+                $markSent = $conn->prepare("UPDATE exam_results SET email_sent_at = NOW() WHERE unique_number = ?");
+                $markSent->bind_param("s", $uniqueNumber);
+                $markSent->execute();
+                echo "<aside id='popup-email'><p>✉️ 이메일 발송 완료</p></aside>";
+            }
+        }
+    }
+
+    // =========================
     // 디스코드 알림
     // =========================
     $webhook = "YOUR_WEBHOOK_URL";
@@ -168,6 +189,26 @@ function sendDiscord($url, $data) {
             transition: background 0.2s;
         }
         .notice-link:hover { background: var(--bg-secondary); }
+
+        /* 이메일 발송 완료 팝업 */
+        #popup-email {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #22c55e;
+            color: #fff;
+            padding: 10px 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 13px;
+            animation: fadeOutEmailPopup 0.5s ease 3s forwards;
+        }
+        @keyframes fadeOutEmailPopup {
+            from { opacity: 1; }
+            to   { opacity: 0; pointer-events: none; }
+        }
     </style>
 </head>
 

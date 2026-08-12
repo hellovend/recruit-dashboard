@@ -3,6 +3,7 @@
 // 인증은 세션이 아니라 Ed25519 서명 검증 + 관리자 Discord ID 화이트리스트로 처리한다.
 require_once __DIR__ . '/../config/discord_bot_config.php';
 require_once __DIR__ . '/../config/dbconfig.php';
+require_once __DIR__ . '/../includes/email_sender.php';
 
 $rawBody = file_get_contents('php://input');
 $signature = $_SERVER['HTTP_X_SIGNATURE_ED25519'] ?? '';
@@ -61,6 +62,23 @@ if (($interaction['type'] ?? null) === 3) {
     $stmt = $conn->prepare("UPDATE exam_results SET pass_status = ? WHERE unique_number = ?");
     $stmt->bind_param("ss", $passStatus, $uniqueNumber);
     $stmt->execute();
+
+    // 합격/불합격이면 저장된 이메일로 결과 메일 발송
+    if ($email_enabled && in_array($passStatus, ['passed', 'failed'], true)) {
+        $emailStmt = $conn->prepare("SELECT email, nickname FROM exam_results WHERE unique_number = ?");
+        $emailStmt->bind_param("s", $uniqueNumber);
+        $emailStmt->execute();
+        $emailRow = $emailStmt->get_result()->fetch_assoc();
+
+        if ($emailRow && $emailRow['email']) {
+            $toName = $emailRow['nickname'] ?: $uniqueNumber;
+            if (sendResultEmail($emailRow['email'], $toName, $uniqueNumber, $passStatus)) {
+                $markSent = $conn->prepare("UPDATE exam_results SET email_sent_at = NOW() WHERE unique_number = ?");
+                $markSent->bind_param("s", $uniqueNumber);
+                $markSent->execute();
+            }
+        }
+    }
 
     $statusText = ['passed' => '합격', 'failed' => '불합격', 'pending' => '보류'][$passStatus];
 
