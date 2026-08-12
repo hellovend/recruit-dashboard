@@ -85,8 +85,6 @@ recruit-dashboard/
 └── index.php / login.php           # 사용자 진입 페이지
 ```
 
-> `admin/index_v2.php`, `api/check_v2.php`, `sync/sync_v2.php`는 이메일 발송 기능을 붙여보던 초안이었습니다. 그 기능은 이제 라이브 파일(`_v2` 없는 쪽)에 통합됐으므로, 이 세 파일은 더 이상 필요 없는 중복입니다 — 지워도 됩니다.
-
 ---
 
 ## ⚙️ 설치 및 설정
