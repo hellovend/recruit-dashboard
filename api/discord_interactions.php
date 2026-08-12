@@ -59,6 +59,18 @@ if (($interaction['type'] ?? null) === 3) {
 
     $passStatus = $statusMap[$action];
 
+    // 존재하지 않는(이미 삭제된) 고유번호면 "처리 완료"로 속이지 않고 여기서 멈춤
+    $check = $conn->prepare("SELECT id FROM exam_results WHERE unique_number = ?");
+    $check->bind_param("s", $uniqueNumber);
+    $check->execute();
+    if ($check->get_result()->num_rows === 0) {
+        echo json_encode([
+            'type' => 4,
+            'data' => ['content' => "⚠️ 고유번호 `{$uniqueNumber}`를 찾을 수 없습니다. 이미 삭제됐을 수 있습니다.", 'flags' => 64],
+        ]);
+        exit();
+    }
+
     $stmt = $conn->prepare("UPDATE exam_results SET pass_status = ? WHERE unique_number = ?");
     $stmt->bind_param("ss", $passStatus, $uniqueNumber);
     $stmt->execute();
