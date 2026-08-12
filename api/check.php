@@ -165,6 +165,22 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             }
             ?>
         </p>
+
+        <!-- 단축 URL 섹션 -->
+        <div id="short-url-section" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color-soft);">
+            <h3 style="margin-bottom: 10px;">결과 공유</h3>
+            <button type="button" id="shorten-btn" class="share-btn" onclick="generateShortURL()">
+                단축 URL 생성
+            </button>
+            
+            <div id="short-url-result" style="margin-top: 10px; display: none;">
+                <p>단축 URL:</p>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="short-url-input" readonly style="flex: 1; padding: 8px; border: 1px solid var(--border-color-soft); border-radius: 4px;">
+                    <button type="button" onclick="copyToClipboard()" class="share-btn" style="min-width: 80px;">복사</button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 <?php endif; ?>
@@ -182,6 +198,74 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+/**
+ * 단축 URL 생성 함수
+ */
+async function generateShortURL() {
+    const resultsTable = document.querySelector('#wrap2 table');
+    if (!resultsTable) {
+        alert('먼저 조회 결과를 확인하세요.');
+        return;
+    }
+
+    const btn = document.getElementById('shorten-btn');
+    const originalText = btn.innerText;
+    btn.disabled = true;
+    btn.innerText = '생성 중...';
+
+    try {
+        // 현재 페이지의 전체 URL을 단축 대상으로 사용
+        const currentURL = window.location.href;
+        
+        const response = await fetch('../api/shorten.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                url: currentURL,
+                expires_in_days: 30  // 30일 유효
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('단축 URL 생성 실패: ' + response.status);
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            const shortURL = data.short_url;
+            document.getElementById('short-url-input').value = shortURL;
+            document.getElementById('short-url-result').style.display = 'block';
+            btn.innerText = '✓ 생성됨';
+        } else {
+            throw new Error(data.message || '알 수 없는 오류');
+        }
+    } catch (error) {
+        console.error('오류:', error);
+        alert('단축 URL 생성 중 오류가 발생했습니다: ' + error.message);
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
+}
+
+/**
+ * 클립보드에 복사
+ */
+function copyToClipboard() {
+    const input = document.getElementById('short-url-input');
+    input.select();
+    
+    try {
+        document.execCommand('copy');
+        alert('단축 URL이 복사되었습니다!');
+    } catch (err) {
+        console.error('복사 실패:', err);
+        alert('복사에 실패했습니다. 수동으로 복사해주세요.');
+    }
+}
 </script>
 
 

@@ -52,6 +52,7 @@ FiveM 서버의 지원자 합격/불합격을 관리하고, Discord 봇/웹훅�
 - 🤖 **구글 폼 자동화** — Google Apps Script를 통해 지원서 제출 시 `sync/sync.php`로 자동 DB 등록
 - 🚫 **지원불가자 접속 차단** *(추가 예정)* — `notpassed_candidates`에 등록된 번호로 조회 시 차단 페이지로 리다이렉트
 - 📣 **공지 시스템** *(추가 예정)* — 관리자가 등록한 공지를 조회 화면 상단 중앙에 배너로 표시
+- 📫 **이메일 통한 안내** *(추가 예정)* — 구글 폼으로 저장된 이메일로 안내와 등록 완료를 알려주는 시스템
 
 ---
 
@@ -214,11 +215,7 @@ $discordWebhook = "https://discord.com/api/webhooks/YOUR_WEBHOOK_URL";
 
 ### 4. 서버 로고 설정
 
-`login.php`, `api/check.php`, `admin/index.php`에서 아래 경로의 로고 이미지를 교체합니다.
-
-```html
-<img src="../assets/logo/logo.png" alt="logo">
-```
+'../assets/logo/logo.png' 해당 파일을 교체하십쇼
 
 ---
 
@@ -319,10 +316,11 @@ chmod g+w sync config sync/log.txt
 
 ---
 
-## 🚧 추가 예정 기능
+## 🌍 테스트 서버 접속
 
-- 🚫 **지원불가자 접속 차단** — `notpassed_candidates`에 등록된 고유번호로 조회 시 결과를 보여주지 않고 차단 페이지로 이동
-- 📣 **공지 시스템** — 관리자가 공지를 등록하면 지원자 조회 화면 상단 중앙에 요약 배너로 표시
+- [메인 페이지](https://pass.hellovend.xyz/)
+- [관리자 페이지](https://pass.hellovend.xyz/login.php) <- admin / admin1234
+- [구글 폼 페이지](https://forms.gle/P8k45qJ3nXNZWAn28)
 
 ---
 
