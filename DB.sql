@@ -162,6 +162,26 @@ CREATE TABLE IF NOT EXISTS `url_shorts` (
   COMMENT='단축 URL 매핑 테이블';
 
 -- ============================================================
+-- 8. notices 테이블
+--    참조 파일: admin/notices.php, api/notices.php
+--    용도: 조회 화면 상단에 표시하는 공지 배너
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `notices` (
+    `id`         INT          NOT NULL AUTO_INCREMENT,
+    `title`      VARCHAR(200) NOT NULL         COMMENT '공지 제목',
+    `content`    TEXT         DEFAULT NULL     COMMENT '공지 상세 내용 (선택)',
+    `type`       ENUM('info','warning','success','danger')
+                              NOT NULL DEFAULT 'info' COMMENT '배너 종류',
+    `is_active`  TINYINT(1)   NOT NULL DEFAULT 1 COMMENT '활성 여부',
+    `starts_at`  DATETIME     DEFAULT NULL     COMMENT '노출 시작 시각 (NULL=즉시)',
+    `ends_at`    DATETIME     DEFAULT NULL     COMMENT '노출 종료 시각 (NULL=무기한)',
+    `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    INDEX `idx_is_active` (`is_active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='공지 배너';
+
+-- ============================================================
 -- 주요 쿼리 레퍼런스 (코드 내 사용 쿼리 정리)
 -- ============================================================
 
