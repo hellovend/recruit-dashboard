@@ -1,3 +1,5 @@
 config/dbconfig.local.php
 config/discord_bot_config.local.php
+config/email_config.local.php
 sync/log.txt
+vendor/
