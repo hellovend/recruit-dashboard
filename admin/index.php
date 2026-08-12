@@ -153,6 +153,22 @@ function sendDiscord($url, $data) {
     <link rel="stylesheet" href="../assets/css/darkmode.css">
     <link rel="stylesheet" href="../assets/css/registration.css">
     <title>SamSam 합격자 등록</title>
+    <style>
+        /* 공지 관리 링크 버튼 */
+        .notice-link {
+            display: block;
+            text-align: center;
+            margin-top: 10px;
+            font: bold 12px "SpoqaHanSansNeo-Regular", sans-serif;
+            color: var(--accent);
+            text-decoration: none;
+            padding: 6px 0;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .notice-link:hover { background: var(--bg-secondary); }
+    </style>
 </head>
 
 <body>
@@ -174,6 +190,8 @@ function sendDiscord($url, $data) {
 
             <input type="submit" value="결과 등록">
         </form>
+
+        <a href="notices.php" class="notice-link">📣 공지 관리</a>
 
         <form method="post">
             <?php echo csrf_field(); ?>
