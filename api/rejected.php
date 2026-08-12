@@ -8,7 +8,10 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     exit();
 }
 
+require_once __DIR__ . '/../includes/csrf.php';
+
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    csrf_require();
     if (isset($_POST['rejected_number'])) {
         $rejectedNumber = $_POST['rejected_number'];
 
@@ -40,6 +43,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <h2>SamSam 지원불가자 추가</h2>
         <p>지원불가자의 고유번호를 입력 후 추가하세요!</p>
         <form action="rejected.php" method="post">
+            <?php echo csrf_field(); ?>
             <input type="number" id="rejected_number" name="rejected_number" placeholder="지원불가자 고유번호" required><br>
             <input type="submit" value="지원불가자 추가">
         </form>

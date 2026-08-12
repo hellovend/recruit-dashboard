@@ -18,6 +18,7 @@ if ($service_status === 1) {
 
 // DB 연결 설정
 require_once __DIR__ . '/../config/dbconfig.php';
+require_once __DIR__ . '/../includes/csrf.php';
 
 $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 
@@ -40,6 +41,8 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
 }
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    csrf_require();
+
     // 공백 제거
     $input_username = isset($_POST['username']) ? trim($_POST['username']) : '';
     $input_password = isset($_POST['password']) ? trim($_POST['password']) : '';
@@ -70,8 +73,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         if ($result && $result->num_rows === 1) {
             $row = $result->fetch_assoc();
 
-            // === 테스트용 평문비교 (보안 약함)
-            if ($input_password === $row['password']) {
+            if (password_verify($input_password, $row['password'])) {
                 $_SESSION['logged_in'] = true;
                 $_SESSION['user_id'] = $row['id'];
                 unset($input_password);
@@ -123,6 +125,7 @@ $conn->close();
         ?>
 
         <form action="login.php" method="post" autocomplete="off">
+            <?php echo csrf_field(); ?>
             <input type="text" id="username" name="username" placeholder="아이디" required>
             <input type="password" id="password" name="password" placeholder="비밀번호" required>
             <input type="submit" value="로그인">

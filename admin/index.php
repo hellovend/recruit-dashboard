@@ -6,6 +6,11 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     exit();
 }
 
+require_once __DIR__ . '/../includes/csrf.php';
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    csrf_require();
+}
+
 if (isset($_POST['logout'])) {
     session_destroy();
     header("Location: login.php");
@@ -158,6 +163,7 @@ function sendDiscord($url, $data) {
         <p>고유번호와 합격여부를 입력 후 등록하세요!</p>
 
         <form method="post">
+            <?php echo csrf_field(); ?>
             <input type="number" name="unique_number" placeholder="고유번호" required><br>
 
             <select name="pass_status" required>
@@ -170,6 +176,7 @@ function sendDiscord($url, $data) {
         </form>
 
         <form method="post">
+            <?php echo csrf_field(); ?>
             <input type="submit" name="logout" value="로그아웃">
         </form>
     </div>

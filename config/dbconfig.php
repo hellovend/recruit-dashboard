@@ -4,6 +4,12 @@ $username = "root";
 $password = "";
 $dbname = "rlagusdn143";
 
+// 운영 자격증명은 git에 커밋되지 않는 dbconfig.local.php에서 덮어씀
+$localConfig = __DIR__ . '/dbconfig.local.php';
+if (file_exists($localConfig)) {
+    require $localConfig;
+}
+
 // 데이터베이스 연결
 $conn = new mysqli($servername, $username, $password, $dbname);
 

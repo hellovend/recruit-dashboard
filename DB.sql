@@ -87,8 +87,8 @@ CREATE TABLE IF NOT EXISTS `candidates` (
 CREATE TABLE IF NOT EXISTS `exam_results` (
     `id`            INT         NOT NULL AUTO_INCREMENT,
     `unique_number` VARCHAR(50) NOT NULL UNIQUE COMMENT '지원자 고유번호',
-    `pass_status`   ENUM('passed','failed')
-                                NOT NULL           COMMENT '합격(passed) / 불합격(failed)',
+    `pass_status`   ENUM('pending','passed','failed')
+                                NOT NULL DEFAULT 'pending' COMMENT '대기(pending) / 합격(passed) / 불합격(failed) — sync.php가 접수 시 pending으로 INSERT함',
     `nickname`      VARCHAR(100) DEFAULT NULL      COMMENT '닉네임 (check.php 표시용)',
     `registered_at` DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '등록 일시',
     PRIMARY KEY (`id`),
@@ -126,9 +126,11 @@ CREATE OR REPLACE VIEW `rejected_applicants` AS
 -- ============================================================
 
 -- 인사팀 로그인 계정
+-- password 컬럼은 반드시 password_hash()로 해시된 값을 넣어야 합니다 (평문 저장 금지).
+-- 아래 값은 각각 'password123', 'password456'을 password_hash(..., PASSWORD_DEFAULT)로 해시한 예시입니다.
 INSERT INTO `users` (`username`, `password`) VALUES
-    ('hr_staff1', 'password123'),
-    ('hr_staff2', 'password456');
+    ('hr_staff1', '$2y$12$3EYp.DYuJToI6c2E8wvNN.cujE3egSWH/D6dTSpfiS.J8TWM6aFZC'),
+    ('hr_staff2', '$2y$12$NHsIUUDr55qm4ovyCrSFL.nUW66VYSGqpryh2S8SQWSiaq4mtTImK');
 
 -- 심사 결과 샘플
 INSERT INTO `exam_results` (`unique_number`, `pass_status`, `nickname`) VALUES

@@ -6,7 +6,7 @@ error_reporting(E_ALL);
 
 // 🔥 DB / Discord 설정
 include '../config/dbconfig.php';
-include '../config/discord_config.php';
+require_once '../includes/discord_bot.php';
 
 // 🔥 요청 데이터 받기
 $input = file_get_contents("php://input");
@@ -49,32 +49,18 @@ if ($result->num_rows === 0) {
 
     $insert = $conn->prepare("
         INSERT INTO exam_results 
-        (unique_number, pass_status, registered_at)
-        VALUES (?, ?, ?)
+        (unique_number, pass_status, nickname, registered_at)
+        VALUES (?, ?, ?, ?)
     ");
 
-    $insert->bind_param("sss", $uniqueNumber, $passStatus, $registeredAt);
+    $insert->bind_param("ssss", $uniqueNumber, $passStatus, $nickname, $registeredAt);
 
     if ($insert->execute()) {
 
         // =========================
-        // 🔥 Discord 알림
+        // 🔥 Discord 봇 알림 (합격/불합격/보류 버튼 포함, 관리자만 클릭 가능)
         // =========================
-        $msg = [
-            'content' => "```새 지원자 접수```",
-            'embeds' => [[
-                'title' => "닉네임: $nickname",
-                'description' => "고유번호: $uniqueNumber\n상태: $passStatus",
-                'color' => 5814783
-            ]]
-        ];
-
-        $ch = curl_init($discordWebhookResults);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, ["Content-Type: application/json"]);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($msg));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_exec($ch);
-        curl_close($ch);
+        send_applicant_bot_message($discordChannelId, $discordBotToken, $uniqueNumber, $nickname);
 
         echo "OK";
 

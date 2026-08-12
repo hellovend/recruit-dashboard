@@ -1,4 +1,11 @@
 <?php
+session_start();
+
+if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    header("Location: ../login.php");
+    exit();
+}
+
 require_once __DIR__ . '/../config/dbconfig.php';
 
 if ($conn->connect_error) { die("연결 실패: " . $conn->connect_error); }
@@ -28,102 +35,113 @@ if($res_denied->num_rows>0){
 }
 
 $conn->close();
+
+function render_list($list) {
+    if (empty($list)) return '<li class="empty">없음</li>';
+    return implode('', array_map(fn($n) => '<li>' . htmlspecialchars($n) . '</li>', $list));
+}
 ?>
 <!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>실시간 고유번호 확인</title>
+<link rel="stylesheet" href="../assets/css/darkmode.css">
 <style>
-body { font-family:sans-serif; background:#f5f5f5; padding:20px;}
-h2 { text-align:center; margin-bottom:30px; }
-.table-container { display:flex; justify-content:space-around; flex-wrap:wrap; gap:20px; }
+body { font-family: sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; }
+h2 { text-align: center; margin-bottom: 32px; }
+
+.board { display: flex; flex-wrap: wrap; gap: 16px; }
 
 .card {
-    background:#fff;
-    box-shadow:0 0 10px rgba(0,0,0,0.1);
-    border-radius:10px;
-    padding:15px;
-    flex:1 1 250px;
-    min-width:200px;
+    flex: 1 1 240px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color-soft);
+    border-radius: 10px;
+    overflow: hidden;
 }
 
-.card h3 { text-align:center; margin-bottom:15px; color:#6145ff; }
+.card h3 {
+    margin: 0;
+    padding: 12px 16px;
+    background: var(--bg-table-header);
+    color: var(--text-table-header);
+    font-size: 15px;
+    display: flex;
+    justify-content: space-between;
+}
 
-table { border-collapse: collapse; width:100%; }
-th, td { border:1px solid #ddd; padding:8px; text-align:center;}
-th { background:#6145ff; color:#fff; }
-td { background:#f9f9f9; }
+.card ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.card li {
+    padding: 8px 16px;
+    border-top: 1px solid var(--border-color-soft);
+}
+
+.card li.empty {
+    color: var(--text-secondary);
+    text-align: center;
+}
 </style>
 </head>
 <body>
 
 <h2>실시간 고유번호 확인</h2>
 
-<div class="table-container">
-    <div class="card" id="pass-table">
-        <h3>합격자</h3>
-        <table>
-            <tr><th>고유번호</th><th>고유번호</th></tr>
-            <?php
-            $counter = 0;
-            foreach($pass as $num){
-                if($counter % 2 == 0) echo "<tr><td>$num</td>";
-                else echo "<td>$num</td></tr>";
-                $counter++;
-            }
-            if($counter % 2 != 0) echo "<td></td></tr>";
-            ?>
-        </table>
+<div class="board">
+    <div class="card" id="pass-card">
+        <h3>합격자 <span id="pass-count"><?php echo count($pass); ?></span></h3>
+        <ul id="pass-list"><?php echo render_list($pass); ?></ul>
     </div>
 
-    <div class="card" id="failed-table">
-        <h3>불합격자</h3>
-        <table>
-            <tr><th>고유번호</th><th>고유번호</th></tr>
-            <?php
-            $counter = 0;
-            foreach($failed as $num){
-                if($counter % 2 == 0) echo "<tr><td>$num</td>";
-                else echo "<td>$num</td></tr>";
-                $counter++;
-            }
-            if($counter % 2 != 0) echo "<td></td></tr>";
-            ?>
-        </table>
+    <div class="card" id="failed-card">
+        <h3>불합격자 <span id="failed-count"><?php echo count($failed); ?></span></h3>
+        <ul id="failed-list"><?php echo render_list($failed); ?></ul>
     </div>
 
-    <div class="card" id="denied-table">
-        <h3>지원불가자</h3>
-        <table>
-            <tr><th>고유번호</th><th>고유번호</th></tr>
-            <?php
-            $counter = 0;
-            foreach($denied as $num){
-                if($counter % 2 == 0) echo "<tr><td>$num</td>";
-                else echo "<td>$num</td></tr>";
-                $counter++;
-            }
-            if($counter % 2 != 0) echo "<td></td></tr>";
-            ?>
-        </table>
+    <div class="card" id="denied-card">
+        <h3>지원불가자 <span id="denied-count"><?php echo count($denied); ?></span></h3>
+        <ul id="denied-list"><?php echo render_list($denied); ?></ul>
     </div>
 </div>
 
+<script src="../assets/script/darkmode.js"></script>
 <script>
-// 2초마다 테이블 영역만 새로고침
-setInterval(() => {
-    fetch('index.php?refresh=1')
-        .then(res => res.text())
-        .then(html => {
-            let parser = new DOMParser();
-            let doc = parser.parseFromString(html, 'text/html');
+// 서버가 값이 바뀔 때만 밀어주는 SSE 방식 (폴링/새로고침 없음)
+function renderList(key, list) {
+    document.getElementById(`${key}-count`).textContent = list.length;
+    const ul = document.getElementById(`${key}-list`);
+    ul.replaceChildren();
+    if (!list.length) {
+        const li = document.createElement('li');
+        li.className = 'empty';
+        li.textContent = '없음';
+        ul.appendChild(li);
+        return;
+    }
+    for (const n of list) {
+        const li = document.createElement('li');
+        li.textContent = n;
+        ul.appendChild(li);
+    }
+}
 
-            document.getElementById('pass-table').innerHTML = doc.getElementById('pass-table').innerHTML;
-            document.getElementById('failed-table').innerHTML = doc.getElementById('failed-table').innerHTML;
-            document.getElementById('denied-table').innerHTML = doc.getElementById('denied-table').innerHTML;
-        });
-}, 2000);
+// 서버 쪽 스트림은 일정 시간 후 스스로 종료됨(ponytail: PHP-FPM 워커 점유 방지)
+// EventSource는 연결이 끊기면 브라우저가 알아서 재연결하므로 별도 재시도 로직 불필요
+const es = new EventSource('numbers_stream.php');
+es.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    renderList('pass', data.pass);
+    renderList('failed', data.failed);
+    renderList('denied', data.denied);
+};
 </script>
 
 </body>

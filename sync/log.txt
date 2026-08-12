@@ -1,6 +1,0 @@
-
-{"timestamp":"2026. 5. 4 오전 9:41:03","nickname":"안녕하세여","unique_number":"2459","age":"25"}
-{"timestamp":"2026. 5. 4 오전 9:45:27","nickname":"","unique_number":"2450","age":""}
-{"timestamp":"2026. 5. 4 오전 9:46:28","nickname":"안녕은 하십니까","unique_number":"200","age":"56"}
-{"timestamp":"2026. 5. 4 오전 9:49:10","nickname":"안ㄴㄴ","unique_number":"240","age":"23"}
-{"timestamp":"2026. 5. 4 오전 9:56:32","nickname":"2222","unique_number":"222","age":"22"}

@@ -1,18 +1,23 @@
 <?php
 session_start();
 
-// if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-//     header("Location: logins.php");
-//     exit();
-// }
+if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    header("Location: login.php");
+    exit();
+}
 
-// if (isset($_POST['logout'])) {
-//     session_destroy();
-//     header("Location: logins.php");
-//     exit();
-// }
-
+require_once __DIR__ . '/../includes/csrf.php';
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    csrf_require();
+}
+
+if (isset($_POST['logout'])) {
+    session_destroy();
+    header("Location: login.php");
+    exit();
+}
+
+if ($_SERVER["REQUEST_METHOD"] === "POST" && !isset($_POST['logout'])) {
     require_once __DIR__ . '/../config/dbconfig.php';
 
     $uniqueNumberToDelete = $_POST['unique_number_to_delete'];
@@ -21,10 +26,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         die("MySQL 연결 실패: " . $conn->connect_error);
     }
 
-    // Delete record based on unique number
-    $sql = "DELETE FROM exam_results WHERE unique_number = '$uniqueNumberToDelete'";
+    $stmt = $conn->prepare("DELETE FROM exam_results WHERE unique_number = ?");
+    $stmt->bind_param("s", $uniqueNumberToDelete);
 
-    if ($conn->query($sql) === TRUE) {
+    if ($stmt->execute()) {
         echo "<aside id='popup'><p>해당 고유번호($uniqueNumberToDelete)를 데이터베이스에서 성공적으로 삭제처리가 되었습니다.</p></aside>";
     } else {
         echo "<aside id='popup'><p>해당 고유번호($uniqueNumberToDelete)는 데이터베이스에서 삭제하는 중에 문제가 발생하여 삭제요청이 취소되었습니다. 다시 시도해주세요.</p></aside>";
@@ -72,13 +77,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <h2>SamSam  고유번호 삭제</h2>
         <p>고유번호를 입력 후 삭제하세요!</p>
         <form action="delete.php" method="post">
+            <?php echo csrf_field(); ?>
             <input type="number" id="unique_number_to_delete" name="unique_number_to_delete" placeholder="삭제할 고유번호" required><br>
             <input type="submit" value="고유번호 삭제하기" id="deleteButton">
         </form>
 
-        <!-- <form action="" method="post">
+        <form action="" method="post">
+            <?php echo csrf_field(); ?>
             <input type="submit" name="logout" value="로그아웃하기">
-        </form> -->
+        </form>
     </div>
     <script src="../assets/script/darkmode.js"></script>
 </body>
